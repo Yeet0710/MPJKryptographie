@@ -1,0 +1,5 @@
+1) Kompilieren ins bin-Verzeichnis
+javac -d bin -cp "C:\MPJ\mpj-v0_44\lib\mpj.jar" src\main\java\org\example\*.java
+
+2) Ausführen (z.B. 4 Prozesse)
+C:\MPJ\mpj-v0_44\bin\mpjrun.bat -np 12 -cp "bin;C:\MPJ\mpj-v0_44\lib\mpj.jar" org.example.Main
