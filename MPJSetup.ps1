@@ -159,6 +159,10 @@ New-NetFirewallRule -DisplayName "MPJ TCP 2000-2100 In" -Direction Inbound -Prot
 Write-Host 'Port erfolgreich geöffnet'
 Write-Host 'Das GitHub-Repo wird nun heruntergeladen!'
 
+# ------------------------
+# 5) Installieren des MPJ-Kryptographie-Projekts (GitHub)
+# ------------------------
+
 # Pfade und URLs
 $destRoot   = "C:\MPJ"
 $zipPath    = "$env:TEMP\mpj-krypto.zip"
@@ -179,5 +183,15 @@ if (Test-Path $finalPath) { Remove-Item $finalPath -Recurse -Force }
 Rename-Item -Path $extractedFolder -NewName "MPJKryptographie"
 
 Write-Host "Fertig! Projekt liegt unter: $finalPath"
+
+# ------------------------
+# 6) Starten des MPJ-Daemons
+# ------------------------
+
+Write-Host "Der MPJ-Daemon wird nun automatisch gestartet."
+& "$env:MPJ_HOME\bin\mpjdaemon.bat" -boot
+
+Write-Host "MPJ-Daemon gestartet. Status wird nun überprüft..."
+& "$env:MPJ_HOME\bin\mpjdaemon.bat" -status
 
 Write-Host 'Bitte starte nun das Terminal neu!'
