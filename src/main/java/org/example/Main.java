@@ -13,41 +13,35 @@ public class Main {
 
         // MPI initialisieren
         MPI.Init(args);
-
-        // Kommunikationsobjekt
         Intracomm comm = MPI.COMM_WORLD;
 
-        // Rang/Größe
         int rank = comm.Rank();
         int size = comm.Size();
 
-        // Logger initialisieren → schreibt NUR in Datei unter logs/
+        // Logger initialisieren (Datei)
         Log.init(rank, size);
         Log.processStart("Primzahl-Suche (bitLength=%d)", 1024);
-        Log.info("Logdatei: %s", Log.getLogFilePath());
 
         SecureRandom random = new SecureRandom();
         boolean globalFound = false;
-        BigInteger candidate = null;
+        BigInteger candidate;
 
         int[] sendBuf = new int[1];
         int[] recvBuf = new int[1];
 
         long startTime = System.currentTimeMillis();
 
-        /**
-         * Jeder Prozess generiert Kandidaten und prüft per Miller-Rabin.
-         * Per Allreduce (MAX) wird verteilt, ob mindestens ein Prozess Erfolg hatte.
-         */
         do {
             candidate = new BigInteger(1024, random);
+            long t0 = System.currentTimeMillis();
             boolean isPrime = MillerRabin.isProbablePrimeMR(candidate, 20, random);
+            long t1 = System.currentTimeMillis();
+
             sendBuf[0] = isPrime ? 1 : 0;
 
-            String hex = candidate.toString(16);
-            String hexShort = hex.substring(0, Math.min(16, hex.length()));
-            Log.processStep("Kandidat geprüft: bits=%d, hex=%s..., isPrime=%s",
-                    candidate.bitLength(), hexShort, isPrime);
+            // Schritt-Log ohne Rohdaten, nur Kontext
+            Log.processStep("Kandidat geprüft (bits=%d, mrRounds=%d, isPrime=%s, t_ms=%d)",
+                    candidate.bitLength(), 20, isPrime, (t1 - t0));
 
             comm.Allreduce(sendBuf, 0, recvBuf, 0, 1, MPI.INT, MPI.MAX);
             globalFound = (recvBuf[0] == 1);
@@ -56,20 +50,16 @@ public class Main {
         long endTime = System.currentTimeMillis();
 
         if (sendBuf[0] == 1) {
-            Log.info("Dieser Prozess hat eine probable prime gefunden. bits=%d", candidate.bitLength());
+            Log.info("Fund: probable prime (bits=%d).", 1024);
         } else {
-            Log.info("Prozess ohne Fund beendet.");
+            Log.info("Kein Fund in diesem Prozess.");
         }
 
-        // Ausgabe der Zeit nur durch Rank 0
         if (rank == 0) {
-            Log.warn("Primzahl in %d ms gefunden.", (endTime - startTime));
+            Log.warn("Primzahl global gefunden in %d ms.", (endTime - startTime));
         }
 
-        // MPI beenden
         MPI.Finalize();
-
-        // Logger sauber beenden
         Log.processEnd("Primzahl-Suche");
         Log.close();
     }
