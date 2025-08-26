@@ -21,9 +21,10 @@ public class Main {
         int rank = comm.Rank();
         int size = comm.Size();
 
-        // Logger initialisieren (nur Konsole)
+        // Logger initialisieren → schreibt NUR in Datei unter logs/
         Log.init(rank, size);
         Log.processStart("Primzahl-Suche (bitLength=%d)", 1024);
+        Log.info("Logdatei: %s", Log.getLogFilePath());
 
         SecureRandom random = new SecureRandom();
         boolean globalFound = false;
@@ -67,6 +68,9 @@ public class Main {
 
         // MPI beenden
         MPI.Finalize();
+
+        // Logger sauber beenden
         Log.processEnd("Primzahl-Suche");
+        Log.close();
     }
 }
