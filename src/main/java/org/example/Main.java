@@ -1,6 +1,8 @@
 package org.example;
 
-import mpi.*;
+import mpi.Intracomm;
+import mpi.MPI;
+import mpi.MPIException;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -12,61 +14,59 @@ public class Main {
         // MPI initialisieren
         MPI.Init(args);
 
-        // Kommunkationsobjekt erstellen
+        // Kommunikationsobjekt
         Intracomm comm = MPI.COMM_WORLD;
 
-        // Rang und Größe erstellen.
-        // Rang ist die ID des Prozesses, Größe ist die Anzahl der Prozesse
-        int rank = MPI.COMM_WORLD.Rank();
-        int size = MPI.COMM_WORLD.Size();
+        // Rang/Größe
+        int rank = comm.Rank();
+        int size = comm.Size();
 
-        // Erstellen eines SecureRandom-Objekts für Zufallszahlen
+        // Logger initialisieren (nur Konsole)
+        Log.init(rank, size);
+        Log.processStart("Primzahl-Suche (bitLength=%d)", 1024);
+
         SecureRandom random = new SecureRandom();
-        // Variable für die globale Suche nach Primzahlen
         boolean globalFound = false;
-        // Variable für den Kandidaten
         BigInteger candidate = null;
 
-        // Buffer für Allreduce
         int[] sendBuf = new int[1];
         int[] recvBuf = new int[1];
 
         long startTime = System.currentTimeMillis();
 
         /**
-         * Jeder Prozess generiert eine Zufallszahl und prüft, ob sie eine Primzahl ist.
-         * Falls dies der Fall ist, wird sendBuf[0] auf 1 gesetzt, andernfalls auf 0.
-         *
-         * Per Allreduce wird dann der größte Wert von sendBuf (1) über alle Prozesse verteilt.
-         * Dadurch wird jeder Prozess darüber informiert, ob mindestens ein Prozess eine Primzahl gefunden hat.
-         *
-         * Danach wird die globale Variable gesetzt, sodass alle Prozesse beendet werden.
+         * Jeder Prozess generiert Kandidaten und prüft per Miller-Rabin.
+         * Per Allreduce (MAX) wird verteilt, ob mindestens ein Prozess Erfolg hatte.
          */
         do {
-            // Neuer Kandidat und Test auf Primzahl
             candidate = new BigInteger(1024, random);
             boolean isPrime = MillerRabin.isProbablePrimeMR(candidate, 20, random);
             sendBuf[0] = isPrime ? 1 : 0;
 
-            comm.Allreduce(sendBuf, 0, recvBuf, 0, 1, MPI.INT, MPI.MAX);
+            String hex = candidate.toString(16);
+            String hexShort = hex.substring(0, Math.min(16, hex.length()));
+            Log.processStep("Kandidat geprüft: bits=%d, hex=%s..., isPrime=%s",
+                    candidate.bitLength(), hexShort, isPrime);
 
-            globalFound = recvBuf[0] == 1;
+            comm.Allreduce(sendBuf, 0, recvBuf, 0, 1, MPI.INT, MPI.MAX);
+            globalFound = (recvBuf[0] == 1);
         } while (!globalFound);
 
         long endTime = System.currentTimeMillis();
 
         if (sendBuf[0] == 1) {
-            System.out.println("Process " + rank + " found a probable prime: " + candidate);
+            Log.info("Dieser Prozess hat eine probable prime gefunden. bits=%d", candidate.bitLength());
         } else {
-            System.out.println("Process " + rank + " did not find a prime.");
+            Log.info("Prozess ohne Fund beendet.");
         }
 
-         // Die Ausgabe der Zeit erfolgt nur für den Prozess mit Rang 0.
+        // Ausgabe der Zeit nur durch Rank 0
         if (rank == 0) {
-            System.out.println("Es wurde eine Primzahl in " + (endTime - startTime) + " ms gefunden.");
+            Log.warn("Primzahl in %d ms gefunden.", (endTime - startTime));
         }
 
         // MPI beenden
         MPI.Finalize();
+        Log.processEnd("Primzahl-Suche");
     }
 }

@@ -7,7 +7,7 @@ public class MillerRabin {
 
     /**
      * Miller–Rabin-Test: prüft, ob n vermutlich prim ist.
-     * Verwendet die schnelleExponentiation für a^d mod n.
+     * Verwendet schnelleExponentiation für a^d mod n.
      *
      * @param n          Ungerade Zahl > 2
      * @param iterations Anzahl der Test-Runden
@@ -15,15 +15,24 @@ public class MillerRabin {
      * @return true, falls n vermutlich prim
      */
     public static boolean isProbablePrimeMR(BigInteger n, int iterations, SecureRandom rnd) {
-        if (n.compareTo(BigInteger.TWO) < 0) return false;
-        if (n.equals(BigInteger.TWO) || n.equals(BigInteger.valueOf(3))) return true;
-        if (n.mod(BigInteger.TWO).equals(BigInteger.ZERO)) return false;
+        Log.processStart("Miller-Rabin: nBits=%d, rounds=%d", n.bitLength(), iterations);
 
-        // Schreibe n-1 = 2^s * d mit d ungerade
+        if (n.compareTo(BigInteger.TWO) < 0) {
+            Log.processEnd("Miller-Rabin Ergebnis: composite (<2)");
+            return false;
+        }
+        if (n.equals(BigInteger.TWO) || n.equals(BigInteger.valueOf(3))) {
+            Log.processEnd("Miller-Rabin Ergebnis: prime (2|3)");
+            return true;
+        }
+        if (n.mod(BigInteger.TWO).equals(BigInteger.ZERO)) {
+            Log.processEnd("Miller-Rabin Ergebnis: composite (even)");
+            return false;
+        }
+
+        // schreibe n-1 = 2^s * d mit d ungerade
         BigInteger d = n.subtract(BigInteger.ONE);
-        // Gibt den Faktor wieder, da die Anzahl der Nullen am Ende gezählt werden
-        int s = d.getLowestSetBit();
-        // Der Rest ist dann d
+        int s = d.getLowestSetBit();   // Anzahl Zweierfaktoren
         d = d.shiftRight(s);
 
         for (int i = 0; i < iterations; i++) {
@@ -36,22 +45,25 @@ public class MillerRabin {
             // Erstes a^d mod n
             BigInteger x = SchnelleExponentiation.schnelleExponentiation(a, d, n);
             if (x.equals(BigInteger.ONE) || x.equals(n.subtract(BigInteger.ONE))) {
+                Log.processStep("MR-Runde %d: a in Trivialmenge", i + 1);
                 continue;
             }
+
             boolean passed = false;
             for (int r = 1; r < s; r++) {
-                // Quadrieren: x = x^2 mod n
                 x = SchnelleExponentiation.schnelleExponentiation(x, BigInteger.TWO, n);
                 if (x.equals(n.subtract(BigInteger.ONE))) {
+                    Log.processStep("MR-Runde %d: überlebt bei r=%d", i + 1, r);
                     passed = true;
                     break;
                 }
             }
             if (!passed) {
-                return false; // n ist zusammengesetzt
+                Log.processEnd("Miller-Rabin Ergebnis: composite (fehlgeschlagen in Runde %d)", i + 1);
+                return false;
             }
         }
-        return true; // vermutlich prim
+        Log.processEnd("Miller-Rabin Ergebnis: probable prime");
+        return true;
     }
-
 }
