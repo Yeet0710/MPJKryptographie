@@ -1,72 +1,78 @@
 package org.example;
 
 import mpi.*;
-
 import java.math.BigInteger;
+import java.net.InetAddress;
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
 
-    public static void main(String[] args) throws MPIException {
-
-        // MPI initialisieren
+    public static void main(String[] args) throws Exception {
         MPI.Init(args);
-
-        // Kommunkationsobjekt erstellen
         Intracomm comm = MPI.COMM_WORLD;
 
-        // Rang und Größe erstellen.
-        // Rang ist die ID des Prozesses, Größe ist die Anzahl der Prozesse
-        int rank = MPI.COMM_WORLD.Rank();
-        int size = MPI.COMM_WORLD.Size();
+        int rank = comm.Rank();
+        int size = comm.Size();
+        String host = InetAddress.getLocalHost().getHostName();
 
-        // Erstellen eines SecureRandom-Objekts für Zufallszahlen
         SecureRandom random = new SecureRandom();
-        // Variable für die globale Suche nach Primzahlen
         boolean globalFound = false;
-        // Variable für den Kandidaten
-        BigInteger candidate = null;
+        BigInteger candidate;
 
-        // Buffer für Allreduce
         int[] sendBuf = new int[1];
         int[] recvBuf = new int[1];
 
-        long startTime = System.currentTimeMillis();
+        long globalStart = System.currentTimeMillis();
+        long localStart = globalStart;
 
-        /**
-         * Jeder Prozess generiert eine Zufallszahl und prüft, ob sie eine Primzahl ist.
-         * Falls dies der Fall ist, wird sendBuf[0] auf 1 gesetzt, andernfalls auf 0.
-         *
-         * Per Allreduce wird dann der größte Wert von sendBuf (1) über alle Prozesse verteilt.
-         * Dadurch wird jeder Prozess darüber informiert, ob mindestens ein Prozess eine Primzahl gefunden hat.
-         *
-         * Danach wird die globale Variable gesetzt, sodass alle Prozesse beendet werden.
-         */
         do {
-            // Neuer Kandidat und Test auf Primzahl
             candidate = new BigInteger(1024, random);
             boolean isPrime = MillerRabin.isProbablePrimeMR(candidate, 20, random);
             sendBuf[0] = isPrime ? 1 : 0;
 
+            // informiert alle Prozesse, ob irgendwer eine Primzahl gefunden hat
             comm.Allreduce(sendBuf, 0, recvBuf, 0, 1, MPI.INT, MPI.MAX);
-
-            globalFound = recvBuf[0] == 1;
+            globalFound = (recvBuf[0] == 1);
         } while (!globalFound);
 
-        long endTime = System.currentTimeMillis();
+        long localEnd = System.currentTimeMillis();
+        boolean iFound = (sendBuf[0] == 1);
 
-        if (sendBuf[0] == 1) {
+        if (iFound) {
             System.out.println("Process " + rank + " found a probable prime: " + candidate);
         } else {
             System.out.println("Process " + rank + " did not find a prime.");
         }
 
-         // Die Ausgabe der Zeit erfolgt nur für den Prozess mit Rang 0.
+// ---- Logging-Daten sammeln & zu Rank 0 senden ----
+        ProcessRun myRun = new ProcessRun(rank, host, localStart, localEnd, iFound);
+
+// Für MPI.OBJECT am sichersten Object-Arrays verwenden
+        Object[] sendArr = new Object[] { myRun };
+        Object[] recvArr = new Object[comm.Size()];   // WICHTIG: auf ALLEN RANKS anlegen!
+
+        comm.Gather(sendArr, 0, 1, MPI.OBJECT,
+                recvArr, 0, 1, MPI.OBJECT, 0);
+
+// Alle synchronisieren, dann globale Endzeit nehmen
+        comm.Barrier();
+        long globalEnd = System.currentTimeMillis();
+
         if (rank == 0) {
-            System.out.println("Es wurde eine Primzahl in " + (endTime - startTime) + " ms gefunden.");
+            // Recv-Array in ProcessRun-Liste casten
+            java.util.List<ProcessRun> runs = new java.util.ArrayList<>(recvArr.length);
+            for (Object o : recvArr) runs.add((ProcessRun) o);
+
+            RunStats stats = new RunStats(runs, globalStart, globalEnd);
+
+            RunLogger.printConsoleSummary(stats);
+            var path = RunLogger.writeLog(stats, "mpj-run");
+            System.out.println("Logdatei geschrieben: " + path.toAbsolutePath());
         }
 
-        // MPI beenden
         MPI.Finalize();
+
     }
 }
