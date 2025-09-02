@@ -11,6 +11,18 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         MPI.Init(args);
+
+        // Standardwerte, die ggf. durch CLI-Argumente überschrieben werden
+        int bitLength = 1024;
+        int mrIterations = 20;
+        for (String arg : args) {
+            if (arg.startsWith("-bitlength=")) {
+                bitLength = Integer.parseInt(arg.substring(arg.indexOf('=') + 1));
+            } else if (arg.startsWith("-mriterationen=")) {
+                mrIterations = Integer.parseInt(arg.substring(arg.indexOf('=') + 1));
+            }
+        }
+
         Intracomm comm = MPI.COMM_WORLD;
 
         int rank = comm.Rank();
@@ -28,8 +40,8 @@ public class Main {
         long localStart = globalStart;
 
         do {
-            candidate = new BigInteger(1024, random);
-            boolean isPrime = MillerRabin.isProbablePrimeMR(candidate, 20, random);
+            candidate = new BigInteger(bitLength, random);
+            boolean isPrime = MillerRabin.isProbablePrimeMR(candidate, mrIterations, random);
             sendBuf[0] = isPrime ? 1 : 0;
 
             // informiert alle Prozesse, ob irgendwer eine Primzahl gefunden hat
