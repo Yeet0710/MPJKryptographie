@@ -18,6 +18,7 @@ ________________
 1. Öffnen des Terminals innerhalb des Projektverzeichnisses
 2. Kompilieren des Projektes mit (`javac -d bin -cp "C:\MPJ\mpj-v0_44\lib\mpj.jar" src\main\java\org\example\*.java`)
 3. Starten des Projektes mit (`C:\MPJ\mpj-v0_44\bin\mpjrun.bat -np 12 -cp "bin;C:\MPJ\mpj-v0_44\lib\mpj.jar" org.example.Main`)
+4. Zusätzliche CLI Commands beinhalten `-bitlength=...` und `-mriterationen=...`, um die Parameter anzupassen.
 
 #### Wichtig!
 Ändere die Verzeichnisse in den obigen Befehlen, falls du MPJ-Express an einem anderen Ort installiert hast
