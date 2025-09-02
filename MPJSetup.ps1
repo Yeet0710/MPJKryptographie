@@ -192,6 +192,13 @@ New-Item -ItemType Directory -Path $destRoot | Out-Null
 # Kopiere nur den gewünschten Teil, aber starte direkt ab "org"
 Copy-Item -Path $sourcePath -Destination $destRoot -Recurse -Force
 
+# Aufräumen
+if (Test-Path $tempDir) { Remove-Item $tempDir -Recurse -Force }
+if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+
+Write-Host "Temporäre Dateien wurden gelöscht."
+
+
 Write-Host "Fertig! Ordnerstruktur org/example liegt jetzt unter: $destRoot"
 
 
