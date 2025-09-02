@@ -182,17 +182,18 @@ Expand-Archive -LiteralPath $zipPath -DestinationPath $tempDir -Force
 # GitHub hängt standardmäßig "-master" an den Ordnernamen
 $rootFolder = Get-ChildItem $tempDir | Where-Object { $_.PSIsContainer } | Select-Object -First 1
 
-# Quellpfad im Repo
+# Quellpfad: nur org\example (ohne bin)
 $sourcePath = Join-Path $rootFolder.FullName "bin\org\example"
 
 # Ziel vorbereiten
 if (Test-Path $destRoot) { Remove-Item $destRoot -Recurse -Force }
 New-Item -ItemType Directory -Path $destRoot | Out-Null
 
-# Kopiere nur den gewünschten Teil
+# Kopiere nur den gewünschten Teil, aber starte direkt ab "org"
 Copy-Item -Path $sourcePath -Destination $destRoot -Recurse -Force
 
-Write-Host "Fertig! bin/org/example liegt jetzt unter: $destRoot"
+Write-Host "Fertig! Ordnerstruktur org/example liegt jetzt unter: $destRoot"
+
 
 
 # ------------------------
