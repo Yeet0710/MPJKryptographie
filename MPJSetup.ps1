@@ -167,22 +167,33 @@ Write-Host 'Das GitHub-Repo wird nun heruntergeladen!'
 $destRoot   = "C:\MPJ"
 $zipPath    = "$env:TEMP\mpj-krypto.zip"
 $repoUrl    = "https://github.com/Yeet0710/MPJKryptographie/archive/refs/heads/master.zip"
+$tempDir    = "$env:TEMP\mpj-krypto-extract"
 
 Write-Host "Lade ZIP-Datei von GitHub herunter ..."
 Invoke-WebRequest -Uri $repoUrl -OutFile $zipPath -UseBasicParsing
 
-Write-Host "Entpacke Projekt nach $destRoot ..."
-Expand-Archive -LiteralPath $zipPath -DestinationPath $destRoot -Force
+# temporären Ordner leeren/anlegen
+if (Test-Path $tempDir) { Remove-Item $tempDir -Recurse -Force }
+New-Item -ItemType Directory -Path $tempDir | Out-Null
+
+Write-Host "Entpacke ZIP nach $tempDir ..."
+Expand-Archive -LiteralPath $zipPath -DestinationPath $tempDir -Force
 
 # GitHub hängt standardmäßig "-master" an den Ordnernamen
-$extractedFolder = Join-Path $destRoot "MPJKryptographie-master"
-$finalPath       = Join-Path $destRoot "MPJKryptographie"
+$rootFolder = Get-ChildItem $tempDir | Where-Object { $_.PSIsContainer } | Select-Object -First 1
 
-# Alten Zielordner ggf. löschen und neu benennen
-if (Test-Path $finalPath) { Remove-Item $finalPath -Recurse -Force }
-Rename-Item -Path $extractedFolder -NewName "MPJKryptographie"
+# Quellpfad im Repo
+$sourcePath = Join-Path $rootFolder.FullName "bin\org\example"
 
-Write-Host "Fertig! Projekt liegt unter: $finalPath"
+# Ziel vorbereiten
+if (Test-Path $destRoot) { Remove-Item $destRoot -Recurse -Force }
+New-Item -ItemType Directory -Path $destRoot | Out-Null
+
+# Kopiere nur den gewünschten Teil
+Copy-Item -Path $sourcePath -Destination $destRoot -Recurse -Force
+
+Write-Host "Fertig! bin/org/example liegt jetzt unter: $destRoot"
+
 
 # ------------------------
 # 6) Starten des MPJ-Daemons
