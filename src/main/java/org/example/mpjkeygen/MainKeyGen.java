@@ -105,10 +105,11 @@ public class MainKeyGen {
             // --- Bob: nur öffentlicher Schlüssel ---
             KeyIO.writeAtomically("bob_n.txt", km.n.toString());
             KeyIO.writeAtomically("bob_e.txt", km.e.toString());
+            KeyIO.writeAtomically("bob_d.txt", km.d.toString());
 
             System.out.println("[Phase 4] Dateien geschrieben:");
             System.out.println("  Alice: n,e,d,p,q,dp,dq,qInv");
-            System.out.println("  Bob:   n,e");
+            System.out.println("  Bob:   n,e,d");
 
             System.out.println("\n=== KeyGen erfolgreich abgeschlossen in " + (t1 - t0) + " ms ===");
         }
