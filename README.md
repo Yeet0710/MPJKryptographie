@@ -18,10 +18,18 @@ ________________
 1. Öffnen des Terminals innerhalb des Projektverzeichnisses
 2. Kompilieren des Projektes mit (`javac -d bin -cp "C:\MPJ\mpj-v0_44\lib\mpj.jar" src\main\java\org\example\*.java`)
 3. Starten des Projektes mit (`C:\MPJ\mpj-v0_44\bin\mpjrun.bat -np 12 -cp "bin;C:\MPJ\mpj-v0_44\lib\mpj.jar" org.example.Main`)
+4. Zusätzliche CLI Commands beinhalten `-bitlength=...` und `-mriterationen=...`, um die Parameter anzupassen.
 
 #### Wichtig!
 Ändere die Verzeichnisse in den obigen Befehlen, falls du MPJ-Express an einem anderen Ort installiert hast
 und setze die Anzahl der Prozesse (`-np`) auf die preferierte Anzahl.
+________________
+## Interner Ablauf
+- Beim Start initialisiert MPJ-Express alle Prozesse und weist ihnen einen Rank zu.
+- Jeder Prozess erzeugt parallel Primzahlkandidaten und prüft sie mit dem Miller-Rabin-Test.
+- Über MPI werden gefundene Primzahlen ausgetauscht; die erste gültige Zahl bildet die Basis für die Schlüssel.
+- Der Prozess mit Rank 0 berechnet daraus die RSA-Komponenten (n, φ, e, d) sowie die CRT-Werte und verteilt sie an alle Prozesse.
+- Anschließend speichert Rank 0 die Schlüsseldateien für die weitere Verwendung.
 ________________
 ## Version 1.0.2
 - **Erweitert**: Das Setup Skript startet nun auch die Daemons nach Abschluss der Installationen

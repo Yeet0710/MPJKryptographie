@@ -1,0 +1,35 @@
+MPJ Kryptographie – Laufprotokoll
+Erzeugt: 2025-09-02_16-02-14
+Anzahl Prozesse: 12
+
+Zeitfenster (lokale Systemzeit):
+Start  : 2025-09-02 16:02:13.597
+Ende   : 2025-09-02 16:02:14.456
+Gesamt : 0.859 s
+
+Prozess-Details:
+Rank 0 auf Rechner NB22-687 | 2025-09-02 16:02:13.597  →  2025-09-02 16:02:14.334 | dauer=737 ms | found=false
+Rank 2 auf Rechner NB22-687 | 2025-09-02 16:02:13.596  →  2025-09-02 16:02:14.334 | dauer=738 ms | found=false
+Rank 4 auf Rechner NB22-687 | 2025-09-02 16:02:13.597  →  2025-09-02 16:02:14.335 | dauer=738 ms | found=true
+Rank 5 auf Rechner NB22-687 | 2025-09-02 16:02:13.597  →  2025-09-02 16:02:14.335 | dauer=738 ms | found=false
+Rank 7 auf Rechner NB22-687 | 2025-09-02 16:02:13.597  →  2025-09-02 16:02:14.335 | dauer=738 ms | found=false
+Rank 8 auf Rechner NB22-687 | 2025-09-02 16:02:13.597  →  2025-09-02 16:02:14.335 | dauer=738 ms | found=false
+Rank 9 auf Rechner NB22-687 | 2025-09-02 16:02:13.597  →  2025-09-02 16:02:14.335 | dauer=738 ms | found=false
+Rank 11 auf Rechner NB22-687 | 2025-09-02 16:02:13.597  →  2025-09-02 16:02:14.335 | dauer=738 ms | found=false
+Rank 1 auf Rechner NB22-687 | 2025-09-02 16:02:13.596  →  2025-09-02 16:02:14.335 | dauer=739 ms | found=false
+Rank 3 auf Rechner NB22-687 | 2025-09-02 16:02:13.596  →  2025-09-02 16:02:14.335 | dauer=739 ms | found=false
+Rank 6 auf Rechner NB22-687 | 2025-09-02 16:02:13.596  →  2025-09-02 16:02:14.335 | dauer=739 ms | found=false
+Rank 10 auf Rechner NB22-687 | 2025-09-02 16:02:13.596  →  2025-09-02 16:02:14.335 | dauer=739 ms | found=false
+
+Zusammenfassung:
+Gesamtzeit: 0.859 s
+Langsamster Prozess: Rank 10 @ NB22-687 (0.739 s)
+Schnellster Prozess: Rank 0 @ NB22-687 (0.737 s)
+Zeit des durchlaufenden (findenden) Prozesses: 0.738 s
+
+Durchschnittliche Zeiten pro Rechner:
+- NB22-687: 738,25 ms
+
+Weitere interessante Daten (Ideen):
+- Anteil der Prozesse mit Fund
+- Verteilung p50/p90/p99 der Laufzeiten
