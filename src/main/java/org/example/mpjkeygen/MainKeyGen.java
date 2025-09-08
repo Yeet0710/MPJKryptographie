@@ -3,11 +3,25 @@ package org.example.mpjkeygen;
 import mpi.Intracomm;
 import mpi.MPI;
 
+import java.io.BufferedOutputStream;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
 public class MainKeyGen {
+
+    static {
+        try {
+            System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out)), true, StandardCharsets.UTF_8));
+            System.setErr(new PrintStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.err)), true, StandardCharsets.UTF_8));
+        } catch (Exception ignored) {}
+    }
     public static void main(String[] args) throws Exception {
+
+
         // ---------------------------------------------------------
         // 0) MPI initialisieren
         // ---------------------------------------------------------

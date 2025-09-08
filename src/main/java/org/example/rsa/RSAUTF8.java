@@ -47,8 +47,8 @@ public class RSAUTF8 {
         if (plusOne) {
             blockSize++;
         }
-        System.out.println("DEBUG: modulus = " + modulus);
-        System.out.println("DEBUG: Berechnete Blockgröße (plusOne=" + plusOne + "): " + blockSize + " Bytes");
+     //   System.out.println("DEBUG: modulus = " + modulus);
+       // System.out.println("DEBUG: Berechnete Blockgröße (plusOne=" + plusOne + "): " + blockSize + " Bytes");
         return blockSize;
     }
 
@@ -73,18 +73,17 @@ public class RSAUTF8 {
 
     public static List<BigInteger> textToBigIntegerBlocks(final String text, final BigInteger modulus) {
         byte[] textBytes = text.getBytes(StandardCharsets.UTF_8);
-        System.out.println("-----------------------");
-        System.out.println("Anzahl der Zeichen: " + text.length());
-        System.out.println("DEBUG: Ursprünglicher Text: " + text);
-        System.out.println("DEBUG: Länge des ursprünglichen Bytearrays: " + textBytes.length);
-        System.out.println("-----------------------");
+        //System.out.println("Anzahl der Zeichen: " + text.length());
+        //System.out.println("DEBUG: Ursprünglicher Text: " + text);
+        //System.out.println("DEBUG: Länge des ursprünglichen Bytearrays: " + textBytes.length);
+        //System.out.println("-----------------------");
 
         int blockSize = getEncryptionBlockSize(modulus);
-        System.out.println("DEBUG: Berechnete Verschlüsselungsblockgröße: " + blockSize + " Bytes");
+        //System.out.println("DEBUG: Berechnete Verschlüsselungsblockgröße: " + blockSize + " Bytes");
 
         byte[] paddedBytes = zeroPadData(textBytes, blockSize);
-        System.out.println("DEBUG: Länge des gepaddeten Bytearrays: " + paddedBytes.length);
-        System.out.println("DEBUG: Anzahl der erzeugten Blöcke: " + (paddedBytes.length / blockSize));
+        //System.out.println("DEBUG: Länge des gepaddeten Bytearrays: " + paddedBytes.length);
+        //System.out.println("DEBUG: Anzahl der erzeugten Blöcke: " + (paddedBytes.length / blockSize));
 
         List<BigInteger> blocks = new ArrayList<>();
         for (int i = 0; i < paddedBytes.length; i += blockSize) {
@@ -96,22 +95,22 @@ public class RSAUTF8 {
 
     public static byte[] bigIntegerBlocksToBytes(List<BigInteger> blocks, int blockLength) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        System.out.println("DEBUG: Anzahl der Blöcke zum Zusammenfügen: " + blocks.size());
+        //System.out.println("DEBUG: Anzahl der Blöcke zum Zusammenfügen: " + blocks.size());
         try {
             for (int i = 0; i < blocks.size(); i++) {
                 BigInteger block = blocks.get(i);
                 byte[] blockBytes = block.toByteArray();
-                System.out.println("DEBUG: Block " + i + " original Länge: " + blockBytes.length);
+          //      System.out.println("DEBUG: Block " + i + " original Länge: " + blockBytes.length);
                 byte[] fixedBlock = new byte[blockLength];
                 if (blockBytes.length > blockLength) {
                     System.arraycopy(blockBytes, blockBytes.length - blockLength, fixedBlock, 0, blockLength);
-                    System.out.println("DEBUG: Block " + i + " wurde gekürzt auf " + blockLength + " Bytes");
+            //        System.out.println("DEBUG: Block " + i + " wurde gekürzt auf " + blockLength + " Bytes");
                 } else if (blockBytes.length < blockLength) {
                     System.arraycopy(blockBytes, 0, fixedBlock, blockLength - blockBytes.length, blockBytes.length);
-                    System.out.println("DEBUG: Block " + i + " wurde aufgefüllt auf " + blockLength + " Bytes");
+              //      System.out.println("DEBUG: Block " + i + " wurde aufgefüllt auf " + blockLength + " Bytes");
                 } else {
                     fixedBlock = blockBytes;
-                    System.out.println("DEBUG: Block " + i + " hat bereits die korrekte Länge: " + blockLength + " Bytes");
+                //    System.out.println("DEBUG: Block " + i + " hat bereits die korrekte Länge: " + blockLength + " Bytes");
                 }
                 outputStream.write(fixedBlock);
             }
@@ -119,34 +118,34 @@ public class RSAUTF8 {
             e.printStackTrace();
         }
         byte[] result = outputStream.toByteArray();
-        System.out.println("DEBUG: Gesamtzahl der Bytes nach Zusammenfügen: " + result.length);
+        //System.out.println("DEBUG: Gesamtzahl der Bytes nach Zusammenfügen: " + result.length);
         return result;
     }
 
     public static String blocksToBase64String(List<BigInteger> blocks, BigInteger modulus) {
         int modBlockSize = getDecryptionBlockSize(modulus);
-        System.out.println("DEBUG: Berechnete Blockgröße für Base64-Darstellung: " + modBlockSize + " Bytes");
+        //System.out.println("DEBUG: Berechnete Blockgröße für Base64-Darstellung: " + modBlockSize + " Bytes");
         byte[] allBytes = bigIntegerBlocksToBytes(blocks, modBlockSize);
-        System.out.println("DEBUG: Anzahl der Bytes im zusammengesetzten Base64-Bytearray: " + allBytes.length);
+        //System.out.println("DEBUG: Anzahl der Bytes im zusammengesetzten Base64-Bytearray: " + allBytes.length);
         String base64String = java.util.Base64.getEncoder().encodeToString(allBytes);
-        System.out.println("DEBUG: Base64-codiertes Chiffrat: " + base64String);
+        //System.out.println("DEBUG: Base64-codiertes Chiffrat: " + base64String);
         return base64String;
     }
 
     public static List<BigInteger> base64StringToBlocks(String base64String, BigInteger modulus) {
         byte[] allBytes = Base64.getDecoder().decode(base64String);
         int modBlockSize = getDecryptionBlockSize(modulus);
-        System.out.println("-----------------------");
-        System.out.println("DEBUG: Gesamtlänge des eingelesenen Base64-Bytearrays: " + allBytes.length);
-        System.out.println("DEBUG: Erwartete Blockgröße: " + modBlockSize + " Bytes");
-        System.out.println("-----------------------");
+        //System.out.println("-----------------------");
+        //System.out.println("DEBUG: Gesamtlänge des eingelesenen Base64-Bytearrays: " + allBytes.length);
+        //System.out.println("DEBUG: Erwartete Blockgröße: " + modBlockSize + " Bytes");
+        //System.out.println("-----------------------");
 
         List<BigInteger> blocks = new ArrayList<>();
         for (int i = 0; i < allBytes.length; i += modBlockSize) {
             byte[] blockBytes = Arrays.copyOfRange(allBytes, i, i + modBlockSize);
             blocks.add(new BigInteger(1, blockBytes));
         }
-        System.out.println("DEBUG: Anzahl der extrahierten Blöcke: " + blocks.size());
+        //System.out.println("DEBUG: Anzahl der extrahierten Blöcke: " + blocks.size());
         return blocks;
     }
 
@@ -171,7 +170,7 @@ public class RSAUTF8 {
             encryptedBlocks.add(cipherBlock);
         }
         long encryptionTime = System.currentTimeMillis() - startTime;
-        System.out.println("Verschlüsselungszeit: " + encryptionTime + " ms");
+        //System.out.println("Verschlüsselungszeit: " + encryptionTime + " ms");
         return new RSAResult(encryptedBlocks);
     }
 
@@ -193,9 +192,9 @@ public class RSAUTF8 {
             BigInteger plainBlock = schnelleExponentiation.pow(block, privKey, modulus);
             decryptedBlocks.add(plainBlock);
         }
-        System.out.println("verwendeter modulus: " + modulus);
+        //System.out.println("verwendeter modulus: " + modulus);
         long decryptionTime = System.currentTimeMillis() - startTime;
-        System.out.println("Entschlüsselungszeit: " + decryptionTime + " ms");
+        //System.out.println("Entschlüsselungszeit: " + decryptionTime + " ms");
 
         int blockSize = getEncryptionBlockSize(modulus);
         byte[] allBytes = bigIntegerBlocksToBytes(decryptedBlocks, blockSize);
@@ -206,9 +205,9 @@ public class RSAUTF8 {
         this.friendPubKey = pubKey;
         this.friendModulus = modulus;
         if (pubKey == null || modulus == null) {
-            System.out.println("Partner-Schlüssel zurückgesetzt. Es wird Bobs Schlüssel verwendet.");
+            //System.out.println("Partner-Schlüssel zurückgesetzt. Es wird Bobs Schlüssel verwendet.");
         } else {
-            System.out.println("Öffentlicher Schlüssel des Partners gesetzt: n=" + modulus + ", e=" + pubKey);
+            //System.out.println("Öffentlicher Schlüssel des Partners gesetzt: n=" + modulus + ", e=" + pubKey);
         }
     }
 

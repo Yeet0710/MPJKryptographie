@@ -3,6 +3,10 @@ package org.example.rsa.mpj;
 import mpi.Intracomm;
 import mpi.MPI;
 
+import java.io.BufferedOutputStream;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,24 +21,63 @@ import org.example.mpjkeygen.schnelleExponentiation;
 
 /**
  * MPI-Wrapper: verteilt RSA-Entschlüsselung (Block-weise) über mehrere Prozesse.
- * Eingabe: Base64 aus Datei (default "cipher.txt" oder letzte .txt-Arg) ODER direktes Base64 als letztes Arg.
- *
- * Aufrufbeispiele (PowerShell):
- *   # liest aus cipher.txt
- *   mpjrun.bat -dev multicore -np 4 -cp ".;JAR;mpj.jar" org.example.rsa.mpj.mpjRSADecrypt
- *
- *   # liest aus myCipher.txt
- *   mpjrun.bat -dev multicore -np 4 -cp ".;JAR;mpj.jar" org.example.rsa.mpj.mpjRSADecrypt "myCipher.txt"
- *
- *   # direktes Base64
- *   mpjrun.bat -dev multicore -np 4 -cp ".;JAR;mpj.jar" org.example.rsa.mpj.mpjRSADecrypt "BASE64..."
+ * Eingabe: Base64 aus Datei (default "cipher.txt" oder irgendein *.txt-Arg) ODER direktes Base64.
+ * MPJ hängt eigene Argumente vorn an; wir durchsuchen die Argumente von hinten und nehmen das erste valide.
  */
 public class mpjRSADecrypt {
+    static {
+        try {
+            System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out)), true, StandardCharsets.UTF_8));
+            System.setErr(new PrintStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.err)), true, StandardCharsets.UTF_8));
+        } catch (Exception ignored) {}
+    }
 
-    private static boolean looksLikeBase64(String s) {
+
+    /** Strenge Base64-Heuristik, um MPJ-Tokens (z. B. "smpdev") auszuschließen. */
+    private static boolean isBase64Strict(String s) {
         if (s == null) return false;
-        // Sehr grobe Heuristik – reicht für unsere CLI-Zwecke
-        return s.matches("^[A-Za-z0-9+/=]+$") && s.length() >= 4;
+        s = s.trim();
+        int len = s.length();
+        if (len < 8 || (len % 4) != 0) return false;                 // sinnvolle Länge + 4er-Multiplikator
+        if (!s.matches("^[A-Za-z0-9+/=]+$")) return false;            // Alphabet
+
+        // Padding prüfen: '=' nur am Ende, max. 2
+        int eq = 0;
+        for (int i = len - 1; i >= 0 && s.charAt(i) == '='; i--) eq++;
+        if (eq > 2) return false;
+        if (eq > 0 && s.substring(0, len - eq).contains("=")) return false;
+
+        // Für RSA-128-Byte-Blöcke ist Base64 typischerweise ≥ 172 Zeichen.
+        // Falls du kürzere Nachrichten hast, kommentiere die folgende Zeile aus:
+        // if (len < 64) return false;
+
+        return true;
+    }
+
+    /** Nimmt die Argumentliste und liefert entweder Base64 (String) oder null. */
+    private static String pickBase64FromArgs(String[] args) {
+        if (args == null || args.length == 0) return null;
+        // von hinten durchsuchen (MPJ hängt vorn eigene Tokens an)
+        for (int i = args.length - 1; i >= 0; i--) {
+            String a = args[i];
+            if (a == null) continue;
+            a = a.trim();
+            if (a.isEmpty()) continue;
+            if (isBase64Strict(a)) return a;
+        }
+        return null;
+    }
+
+    /** Nimmt die Argumentliste und liefert den ersten *.txt-Pfad (von hinten), sonst null. */
+    private static String pickCipherFileFromArgs(String[] args) {
+        if (args == null || args.length == 0) return null;
+        for (int i = args.length - 1; i >= 0; i--) {
+            String a = args[i];
+            if (a == null) continue;
+            a = a.trim();
+            if (a.toLowerCase().endsWith(".txt")) return a;
+        }
+        return null;
     }
 
     public static void main(String[] args) throws Exception {
@@ -46,23 +89,17 @@ public class mpjRSADecrypt {
         String base64 = null;
 
         if (rank == 0) {
-            // -------- Argumente robust parsen --------
-            String inFile = "cipher.txt";
-            if (args != null && args.length > 0) {
-                String last = args[args.length - 1];
-                if (last.toLowerCase().endsWith(".txt")) {
-                    inFile = last;
-                    System.out.println("[Decrypt][Rank0] Lese Chiffrat aus Datei: " + inFile);
-                    base64 = Files.readString(Path.of(inFile), StandardCharsets.UTF_8).trim();
-                } else if (looksLikeBase64(last)) {
-                    base64 = last;
-                    System.out.println("[Decrypt][Rank0] Base64 aus Argument übernommen.");
-                } else {
-                    System.out.println("[Decrypt][Rank0] Argument nicht erkannt – lese aus Standarddatei: " + inFile);
-                    base64 = Files.readString(Path.of(inFile), StandardCharsets.UTF_8).trim();
-                }
+            // 1) Versuche zuerst Base64 aus den Args (strikt) zu ziehen
+            String argB64 = pickBase64FromArgs(args);
+
+            if (argB64 != null) {
+                base64 = argB64.trim();
+                System.out.println("[Decrypt][Rank0] Base64 aus Argument übernommen.");
             } else {
-                System.out.println("[Decrypt][Rank0] Keine Argumente – lese aus Standarddatei: " + inFile);
+                // 2) Sonst: suche eine *.txt-Angabe, oder nimm Standarddatei
+                String inFile = pickCipherFileFromArgs(args);
+                if (inFile == null) inFile = "cipher.txt";
+                System.out.println("[Decrypt][Rank0] Lese Chiffrat aus Datei: " + inFile);
                 base64 = Files.readString(Path.of(inFile), StandardCharsets.UTF_8).trim();
             }
         }

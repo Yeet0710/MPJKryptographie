@@ -3,6 +3,10 @@ package org.example.rsa.mpj;
 import mpi.Intracomm;
 import mpi.MPI;
 
+import java.io.BufferedOutputStream;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,6 +31,13 @@ import org.example.mpjkeygen.schnelleExponentiation;
  *   mpjrun.bat -dev multicore -np 4 -cp ".;JAR;mpj.jar" org.example.rsa.mpj.mpjRSAEncrypt "Möge die Macht mit dir sein!" "myCipher.txt"
  */
 public class mpjRSAEncrypt {
+
+    static {
+        try {
+            System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.out)), true, StandardCharsets.UTF_8));
+            System.setErr(new PrintStream(new BufferedOutputStream(new FileOutputStream(FileDescriptor.err)), true, StandardCharsets.UTF_8));
+        } catch (Exception ignored) {}
+    }
 
     public static void main(String[] args) throws Exception {
         MPI.Init(args);

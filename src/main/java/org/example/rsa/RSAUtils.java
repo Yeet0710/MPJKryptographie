@@ -96,4 +96,22 @@ public final class RSAUtils {
         } catch (Exception ignored) {}
         return null;
     }
+
+    /**
+     * Wandelt ein BigInteger sicher in einen String um.
+     * - Gibt bei null einen leeren String zurück (damit Broadcast nicht crasht).
+     * - Verwendet Basis 10 (dezimal), damit new BigInteger(str) auf allen Ranks funktioniert.
+     */
+    public static String bigIntegerToStringSafe(BigInteger val) {
+        return (val == null) ? "" : val.toString(10);
+    }
+
+    /**
+     * Wandelt einen String zurück in ein BigInteger.
+     * - Gibt null zurück, wenn der String leer oder null ist.
+     */
+    public static BigInteger stringToBigIntegerSafe(String s) {
+        if (s == null || s.isEmpty()) return null;
+        return new BigInteger(s, 10);
+    }
 }
