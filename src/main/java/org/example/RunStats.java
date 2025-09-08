@@ -12,7 +12,6 @@ public class RunStats {
     public long globalStartMs() { return globalStart; }
     public long globalEndMs()   { return globalEnd;   }
 
-
     public RunStats(List<ProcessRun> runs, long globalStart, long globalEnd) {
         this.runs = new ArrayList<>(runs);
         this.globalStart = globalStart;

@@ -53,9 +53,11 @@ public class RunLogger {
 
         String tsPart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
         String base   = sanitize(filePrefix);
+        String bitsPart = runs.isEmpty() ? "" : "__bits-" + runs.get(0).bitsRequested;
         String fname  = (base.isBlank() ? "mpj-run" : base)
                 + "__" + tsPart
                 + "__np-" + np
+                + bitsPart
                 + ".log";
 
         Path file = dir.resolve(fname);
@@ -65,6 +67,12 @@ public class RunLogger {
             w.write("MPJ Kryptographie – Laufprotokoll\n");
             w.write("Erzeugt: " + tsPart + System.lineSeparator());
             w.write("Anzahl Prozesse: " + np + System.lineSeparator());
+            w.write(System.lineSeparator());
+
+            // Konfiguration
+            w.write("Konfiguration:\n");
+            w.write("- Kandidaten-Bitlänge (requested): " +
+                    (runs.isEmpty() ? "n/a" : runs.get(0).bitsRequested) + System.lineSeparator());
             w.write(System.lineSeparator());
 
             // Globales Zeitfenster
@@ -80,8 +88,13 @@ public class RunLogger {
             w.write("Prozess-Details:\n");
             for (ProcessRun r : runs) {
                 w.write(String.format(
-                        "Rank %d auf Rechner %s | %s  →  %s | dauer=%d ms | found=%s%n",
-                        r.rank, r.host, fmtTs(r.startMs), fmtTs(r.endMs), r.durationMs, r.foundPrime));
+                        "Rank %d @ %s | %s  →  %s | dauer=%d ms | found=%s | bits=%s | LTS(start=%s, found=%s, end=%s)%n",
+                        r.rank, r.host, fmtTs(r.startMs), fmtTs(r.endMs), r.durationMs, r.foundPrime,
+                        (r.bitsActual >= 0 ? (r.bitsActual + "/" + r.bitsRequested) : ("-/" + r.bitsRequested)),
+                        LogicalTime.fmt(r.ltsStart),
+                        (r.ltsFound >= 0 ? LogicalTime.fmt(r.ltsFound) : "-"),
+                        LogicalTime.fmt(r.ltsEnd)
+                ));
             }
             w.write(System.lineSeparator());
 
@@ -107,9 +120,16 @@ public class RunLogger {
             }
 
             w.write(System.lineSeparator());
-            w.write("Weitere interessante Daten (Ideen):\n");
-            w.write("- Anteil der Prozesse mit Fund\n");
-            w.write("- Verteilung p50/p90/p99 der Laufzeiten\n");
+            w.write("Globale logische Reihenfolge (nach LTS-Ende):\n");
+            runs.stream()
+                    .sorted((a,b) -> Long.compare(a.ltsEnd, b.ltsEnd))
+                    .forEachOrdered(r -> {
+                        try {
+                            w.write(String.format("- %-10s  Rank %d @ %s  (dauer=%d ms)%n",
+                                    LogicalTime.fmt(r.ltsEnd), r.rank, r.host, r.durationMs));
+                        } catch (IOException ex) { /* ignore */ }
+                    });
+
         }
 
         return file;
@@ -128,7 +148,11 @@ public class RunLogger {
             System.out.println(
                     "Rank " + r.rank + " @ " + r.host +
                             " -> " + fmtTs(r.startMs) + " → " + fmtTs(r.endMs) +
-                            " (" + r.durationMs + " ms); found=" + r.foundPrime
+                            " (" + r.durationMs + " ms); found=" + r.foundPrime +
+                            "; bits=" + (r.bitsActual >= 0 ? (r.bitsActual + "/" + r.bitsRequested) : ("-/" + r.bitsRequested)) +
+                            "; LTS(start=" + LogicalTime.fmt(r.ltsStart) +
+                            ", found=" + (r.ltsFound >= 0 ? LogicalTime.fmt(r.ltsFound) : "-") +
+                            ", end=" + LogicalTime.fmt(r.ltsEnd) + ")"
             );
         }
 
@@ -145,9 +169,11 @@ public class RunLogger {
         if (winning >= 0)
             System.out.println("Zeit des findenden Prozesses: " + fmtDuration(winning));
 
-        System.out.println("Durchschnitt je Rechner:");
-        stats.avgPerHost().forEach((h, avg) ->
-                System.out.println("- " + h + ": " + String.format("%.2f ms", avg)));
+        System.out.println("Logische Reihenfolge (LTS end):");
+        stats.runs().stream()
+                .sorted((a,b) -> Long.compare(a.ltsEnd, b.ltsEnd))
+                .forEach(r -> System.out.println("  " + LogicalTime.fmt(r.ltsEnd) +
+                        "  -> Rank " + r.rank + " @ " + r.host));
         System.out.println("=== Ende ===\n");
     }
 }

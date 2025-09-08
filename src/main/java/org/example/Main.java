@@ -4,8 +4,6 @@ import mpi.*;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Main {
 
@@ -17,7 +15,13 @@ public class Main {
         int size = comm.Size();
         String host = InetAddress.getLocalHost().getHostName();
 
+        // --- Konfiguration ---
+        final int CAND_BITS = 1024;       // gewünschte Bitlänge für Kandidaten
+        final int MR_ROUNDS = 20;         // Miller-Rabin Iterationen
+
+        LogicalTime ltime = new LogicalTime(rank);
         SecureRandom random = new SecureRandom();
+
         boolean globalFound = false;
         BigInteger candidate;
 
@@ -25,16 +29,34 @@ public class Main {
         int[] recvBuf = new int[1];
 
         long globalStart = System.currentTimeMillis();
-        long localStart = globalStart;
+        long localStart  = globalStart;
+
+        // Logische Zeiten
+        long ltsStart = ltime.tick();
+        long ltsFound = -1L;
+        int  bitsActual = -1;
 
         do {
-            candidate = new BigInteger(1024, random);
-            boolean isPrime = MillerRabin.isProbablePrimeMR(candidate, 20, random);
+            // Kandidat erzeugen und prüfen
+            candidate = new BigInteger(CAND_BITS, random);
+            boolean isPrime = MillerRabin.isProbablePrimeMR(candidate, MR_ROUNDS, random);
             sendBuf[0] = isPrime ? 1 : 0;
 
-            // informiert alle Prozesse, ob irgendwer eine Primzahl gefunden hat
+            // LTS: lokales Prüfergebnis erzeugt
+            ltime.tick();
+
+            // Alle informieren, ob jemand eine Primzahl fand
             comm.Allreduce(sendBuf, 0, recvBuf, 0, 1, MPI.INT, MPI.MAX);
+
+            // LTS: Kollektiv beendet
+            ltime.tick();
+
             globalFound = (recvBuf[0] == 1);
+            if (isPrime && ltsFound < 0) {
+                // LTS: Fund markiert
+                ltsFound = ltime.tick();
+                bitsActual = candidate.bitLength();
+            }
         } while (!globalFound);
 
         long localEnd = System.currentTimeMillis();
@@ -46,24 +68,46 @@ public class Main {
             System.out.println("Process " + rank + " did not find a prime.");
         }
 
-// ---- Logging-Daten sammeln & zu Rank 0 senden ----
-        ProcessRun myRun = new ProcessRun(rank, host, localStart, localEnd, iFound);
+        // ---- Logging-Daten sammeln & zu Rank 0 senden ----
+        // LTS: vor dem Gather noch einmal ticken (Sendevorbereitung)
+        ltime.tick();
 
-// Für MPI.OBJECT am sichersten Object-Arrays verwenden
+        ProcessRun myRun = new ProcessRun(
+                rank, host, localStart, localEnd, iFound,
+                ltsStart, ltsFound, /* ltsEnd wird später gesetzt */ -1L,
+                CAND_BITS, bitsActual
+        );
+
         Object[] sendArr = new Object[] { myRun };
-        Object[] recvArr = new Object[comm.Size()];   // WICHTIG: auf ALLEN RANKS anlegen!
+        Object[] recvArr = new Object[comm.Size()];   // auf ALLEN RANKS anlegen!
 
         comm.Gather(sendArr, 0, 1, MPI.OBJECT,
                 recvArr, 0, 1, MPI.OBJECT, 0);
 
-// Alle synchronisieren, dann globale Endzeit nehmen
+        // Alle synchronisieren
         comm.Barrier();
+
+        // LTS: Prozessende
+        long ltsEnd = ltime.tick();
+
+        // ltsEnd separat an Rank 0 übertragen
+        long[] endLtsBuf = new long[]{ ltsEnd };
+        long[] allEndLts = new long[size];
+        comm.Gather(endLtsBuf, 0, 1, MPI.LONG, allEndLts, 0, 1, MPI.LONG, 0);
+
         long globalEnd = System.currentTimeMillis();
 
         if (rank == 0) {
-            // Recv-Array in ProcessRun-Liste casten
+            // Liste der Runs aufbauen und ltsEnd injizieren
             java.util.List<ProcessRun> runs = new java.util.ArrayList<>(recvArr.length);
-            for (Object o : recvArr) runs.add((ProcessRun) o);
+            for (int i = 0; i < recvArr.length; i++) {
+                ProcessRun r = (ProcessRun) recvArr[i];
+                runs.add(new ProcessRun(
+                        r.rank, r.host, r.startMs, r.endMs, r.foundPrime,
+                        r.ltsStart, r.ltsFound, allEndLts[i],
+                        r.bitsRequested, r.bitsActual
+                ));
+            }
 
             RunStats stats = new RunStats(runs, globalStart, globalEnd);
 
@@ -73,6 +117,5 @@ public class Main {
         }
 
         MPI.Finalize();
-
     }
 }
