@@ -7,7 +7,7 @@ import java.math.BigInteger;
 
 /**
  * RSA helper that distributes block exponentiations across MPI ranks.
- * Rank 0 broadcasts all block data and collects the results, while each
+ * Rank 0 scatters block data to all ranks and gathers the results, while each
  * process performs its assigned exponentiations using
  * {@link ParallelSchnelleExponentiation} locally.
  */
@@ -39,58 +39,48 @@ public final class ParallelRSA {
         e = new BigInteger(keyMeta[0]);
         n = new BigInteger(keyMeta[1]);
 
-        // Broadcast all blocks once
-        String[] blockMeta = new String[total];
+        // Scatter blocks so each rank only receives its portion
+        int base = total / size;
+        int rem = total % size;
+        int[] counts = new int[size];
+        int[] displs = new int[size];
+        int offset = 0;
+        for (int r = 0; r < size; r++) {
+            counts[r] = base + (r < rem ? 1 : 0);
+            displs[r] = offset;
+            offset += counts[r];
+        }
+        int localCount = counts[rank];
+
+        String[] sendBuf = null;
         if (rank == 0 && blocks != null) {
+            sendBuf = new String[total];
             for (int i = 0; i < total; i++) {
-                blockMeta[i] = blocks[i].toString();
+                sendBuf[i] = blocks[i].toString();
             }
         }
+        String[] recvBuf = new String[localCount];
         if (total > 0) {
-            comm.Bcast(blockMeta, 0, total, MPI.OBJECT, 0);
-        }
-        BigInteger[] allBlocks = new BigInteger[total];
-        for (int i = 0; i < total; i++) {
-            allBlocks[i] = new BigInteger(blockMeta[i]);
+            comm.Scatterv(sendBuf, counts, displs, MPI.OBJECT, recvBuf, localCount, MPI.OBJECT, 0);
         }
 
-        // Each rank processes its own block indices
-        int count = 0;
-        for (int i = rank; i < total; i += size) {
-            count++;
-        }
-        int[] indices = new int[count];
-        String[] values = new String[count];
-        int c = 0;
-        for (int i = rank; i < total; i += size) {
-            BigInteger enc = ParallelSchnelleExponentiation.pow(allBlocks[i], e, n, (Intracomm) MPI.COMM_SELF);
-            indices[c] = i;
-            values[c] = enc.toString();
-            c++;
+        // Process received blocks locally
+        String[] localVals = new String[localCount];
+        for (int i = 0; i < localCount; i++) {
+            BigInteger enc = ParallelSchnelleExponentiation.pow(new BigInteger(recvBuf[i]), e, n, (Intracomm) MPI.COMM_SELF);
+            localVals[i] = enc.toString();
         }
 
         BigInteger[] result = null;
         if (rank == 0 && total > 0) {
+            String[] gathered = new String[total];
+            comm.Gatherv(localVals, localCount, MPI.OBJECT, gathered, counts, displs, MPI.OBJECT, 0);
             result = new BigInteger[total];
-            for (int j = 0; j < count; j++) {
-                result[indices[j]] = new BigInteger(values[j]);
+            for (int i = 0; i < total; i++) {
+                result[i] = new BigInteger(gathered[i]);
             }
-            for (int r = 1; r < size; r++) {
-                int rc = 0;
-                for (int i = r; i < total; i += size) {
-                    rc++;
-                }
-                int[] rIdx = new int[rc];
-                String[] rVal = new String[rc];
-                comm.Recv(rIdx, 0, rc, MPI.INT, r, 0);
-                comm.Recv(rVal, 0, rc, MPI.OBJECT, r, 1);
-                for (int j = 0; j < rc; j++) {
-                    result[rIdx[j]] = new BigInteger(rVal[j]);
-                }
-            }
-        } else {
-            comm.Send(indices, 0, count, MPI.INT, 0, 0);
-            comm.Send(values, 0, count, MPI.OBJECT, 0, 1);
+        } else if (total > 0) {
+            comm.Gatherv(localVals, localCount, MPI.OBJECT, new String[0], counts, displs, MPI.OBJECT, 0);
         }
         return result;
     }
@@ -117,56 +107,48 @@ public final class ParallelRSA {
         d = new BigInteger(keyMeta[0]);
         n = new BigInteger(keyMeta[1]);
 
-        String[] blockMeta = new String[total];
+        // Scatter blocks so each rank only receives its portion
+        int base = total / size;
+        int rem = total % size;
+        int[] counts = new int[size];
+        int[] displs = new int[size];
+        int offset = 0;
+        for (int r = 0; r < size; r++) {
+            counts[r] = base + (r < rem ? 1 : 0);
+            displs[r] = offset;
+            offset += counts[r];
+        }
+        int localCount = counts[rank];
+
+        String[] sendBuf = null;
         if (rank == 0 && blocks != null) {
+            sendBuf = new String[total];
             for (int i = 0; i < total; i++) {
-                blockMeta[i] = blocks[i].toString();
+                sendBuf[i] = blocks[i].toString();
             }
         }
+        String[] recvBuf = new String[localCount];
         if (total > 0) {
-            comm.Bcast(blockMeta, 0, total, MPI.OBJECT, 0);
-        }
-        BigInteger[] allBlocks = new BigInteger[total];
-        for (int i = 0; i < total; i++) {
-            allBlocks[i] = new BigInteger(blockMeta[i]);
+            comm.Scatterv(sendBuf, counts, displs, MPI.OBJECT, recvBuf, localCount, MPI.OBJECT, 0);
         }
 
-        int count = 0;
-        for (int i = rank; i < total; i += size) {
-            count++;
-        }
-        int[] indices = new int[count];
-        String[] values = new String[count];
-        int c = 0;
-        for (int i = rank; i < total; i += size) {
-            BigInteger dec = ParallelSchnelleExponentiation.pow(allBlocks[i], d, n, (Intracomm) MPI.COMM_SELF);
-            indices[c] = i;
-            values[c] = dec.toString();
-            c++;
+        // Process received blocks locally
+        String[] localVals = new String[localCount];
+        for (int i = 0; i < localCount; i++) {
+            BigInteger dec = ParallelSchnelleExponentiation.pow(new BigInteger(recvBuf[i]), d, n, (Intracomm) MPI.COMM_SELF);
+            localVals[i] = dec.toString();
         }
 
         BigInteger[] result = null;
         if (rank == 0 && total > 0) {
+            String[] gathered = new String[total];
+            comm.Gatherv(localVals, localCount, MPI.OBJECT, gathered, counts, displs, MPI.OBJECT, 0);
             result = new BigInteger[total];
-            for (int j = 0; j < count; j++) {
-                result[indices[j]] = new BigInteger(values[j]);
+            for (int i = 0; i < total; i++) {
+                result[i] = new BigInteger(gathered[i]);
             }
-            for (int r = 1; r < size; r++) {
-                int rc = 0;
-                for (int i = r; i < total; i += size) {
-                    rc++;
-                }
-                int[] rIdx = new int[rc];
-                String[] rVal = new String[rc];
-                comm.Recv(rIdx, 0, rc, MPI.INT, r, 0);
-                comm.Recv(rVal, 0, rc, MPI.OBJECT, r, 1);
-                for (int j = 0; j < rc; j++) {
-                    result[rIdx[j]] = new BigInteger(rVal[j]);
-                }
-            }
-        } else {
-            comm.Send(indices, 0, count, MPI.INT, 0, 0);
-            comm.Send(values, 0, count, MPI.OBJECT, 0, 1);
+        } else if (total > 0) {
+            comm.Gatherv(localVals, localCount, MPI.OBJECT, new String[0], counts, displs, MPI.OBJECT, 0);
         }
         return result;
     }
