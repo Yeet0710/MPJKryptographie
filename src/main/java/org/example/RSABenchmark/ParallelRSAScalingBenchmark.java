@@ -18,7 +18,12 @@ import java.util.regex.Pattern;
 /**
  * Runs {@link ParallelRSABenchmark} for different process counts and
  * prints a table with total runtime and speedup based on encryption
- * plus decryption times.
+ * plus decryption times. Each configuration is executed multiple
+ * times and the average runtime is used for the speedup calculation.
+ *
+ * <p>The number of repetitions can be provided as the first argument,
+ * defaulting to 3 if omitted.</p>
+
  */
 public class ParallelRSAScalingBenchmark {
 
@@ -36,6 +41,7 @@ public class ParallelRSAScalingBenchmark {
             npValues.add(np);
         }
 
+        int runs = args.length > 0 ? Integer.parseInt(args[0]) : 3;
         List<Result> results = new ArrayList<>();
         Path logDir = Paths.get("logs");
         Files.createDirectories(logDir);
@@ -44,34 +50,40 @@ public class ParallelRSAScalingBenchmark {
                 ? "mpjrun.bat" : "mpjrun.sh";
 
         for (int np : npValues) {
-            ProcessBuilder pb = new ProcessBuilder(
-                    mpjRun, "-np", String.valueOf(np),
-                    "-cp", "target/classes",
-                    ParallelRSABenchmark.class.getName());
-            pb.redirectErrorStream(true);
-            Process proc = pb.start();
+            double total = 0.0;
+            for (int run = 1; run <= runs; run++) {
+                ProcessBuilder pb = new ProcessBuilder(
+                        mpjRun, "-np", String.valueOf(np),
+                        "-cp", "target/classes",
+                        ParallelRSABenchmark.class.getName());
+                pb.redirectErrorStream(true);
+                Process proc = pb.start();
 
-            StringBuilder out = new StringBuilder();
-            try (BufferedReader br = new BufferedReader(
-                    new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    out.append(line).append(System.lineSeparator());
+                StringBuilder out = new StringBuilder();
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        out.append(line).append(System.lineSeparator());
+                    }
+                }
+                proc.waitFor();
+
+                String content = out.toString();
+                Files.writeString(logDir.resolve(
+                        String.format(Locale.ROOT, "ParallelRSAScalingBenchmark_np%d_run%d.log", np, run)),
+                        content, StandardCharsets.UTF_8);
+
+                Matcher em = ENC_PATTERN.matcher(content);
+                Matcher dm = DEC_PATTERN.matcher(content);
+                if (em.find() && dm.find()) {
+                    double enc = parseDouble(em.group(1));
+                    double dec = parseDouble(dm.group(1));
+                    total += enc + dec;
                 }
             }
-            proc.waitFor();
+            results.add(new Result(np, total / runs));
 
-            String content = out.toString();
-            Files.writeString(logDir.resolve("ParallelRSAScalingBenchmark_np" + np + ".log"),
-                    content, StandardCharsets.UTF_8);
-
-            Matcher em = ENC_PATTERN.matcher(content);
-            Matcher dm = DEC_PATTERN.matcher(content);
-            if (em.find() && dm.find()) {
-                double enc = parseDouble(em.group(1));
-                double dec = parseDouble(dm.group(1));
-                results.add(new Result(np, enc + dec));
-            }
         }
 
         if (results.isEmpty()) return;

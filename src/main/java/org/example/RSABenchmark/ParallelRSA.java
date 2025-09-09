@@ -137,6 +137,7 @@ public final class ParallelRSA {
 
             comm.Scatterv(sendBuf, 0, counts, displs, MPI.OBJECT, recvBuf, 0, localCount, MPI.OBJECT, 0);
         }
+
         // Process received blocks locally
         String[] localVals = new String[localCount];
         for (int i = 0; i < localCount; i++) {
