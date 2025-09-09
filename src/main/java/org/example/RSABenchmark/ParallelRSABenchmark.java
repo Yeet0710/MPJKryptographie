@@ -5,6 +5,7 @@ import mpi.MPI;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 import org.example.rsa.RSAUTF8;
@@ -39,12 +40,12 @@ public class ParallelRSABenchmark {
         long t0 = System.currentTimeMillis();
         BigInteger[] cipherBlocks = ParallelRSA.encrypt(plainBlocks, e, n, comm);
         long t1 = System.currentTimeMillis();
-        BigInteger[] decrypted = ParallelRSA.decrypt(cipherBlocks, d, n, comm);
+        BigInteger[] decrypted = ParallelRSA.decrypt(rank == 0 ? cipherBlocks : null, d, n, comm);
         long t2 = System.currentTimeMillis();
 
         if (rank == 0) {
             int blockSize = RSAUTF8.getEncryptionBlockSize(n);
-            byte[] bytes = RSAUTF8.bigIntegerBlocksToBytes(List.of(decrypted), blockSize);
+            byte[] bytes = RSAUTF8.bigIntegerBlocksToBytes(Arrays.asList(decrypted), blockSize);
             String recovered = new String(bytes, StandardCharsets.UTF_8).trim();
             System.out.println("[Benchmark][Rank0] Verschl\u00fcsselung: " + (t1 - t0) + " ms");
             System.out.println("[Benchmark][Rank0] Entschl\u00fcsselung: " + (t2 - t1) + " ms");
