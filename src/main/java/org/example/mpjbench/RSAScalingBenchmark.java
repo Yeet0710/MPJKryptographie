@@ -22,10 +22,19 @@ import java.util.regex.Pattern;
  */
 public class RSAScalingBenchmark {
 
+    // Die vom MPJ-Runtime erzeugten Logdateien sind nicht immer in UTF-8
+    // kodiert. Beim Einlesen mit UTF-8 entstehen daher Ersatzzeichen (�)
+    // anstelle der Umlaute, wodurch die exakten Strings mit "Verschlüsselungs"
+    // und "Entschlüsselungs" nicht mehr erkannt werden. Die vorherigen,
+    // sehr spezifischen Regex-Ausdrücke schlugen deshalb fehl und die Liste
+    // der gemessenen Zeiten blieb leer, was wiederum zu NaN in der Tabelle
+    // führte. Statt den gesamten Wortlaut mit Umlauten zu matchen, suchen wir
+    // nun nur nach stabilen Textfragmenten und erlauben beliebige Zeichen
+    // (auch Ersatzzeichen) dazwischen.
     private static final Pattern ENC_PATTERN = Pattern.compile(
-            "Durchschnittliche Verschlüsselungszeit:\\s*([0-9.,]+) ms");
+            "Durchschnittliche Versch.*?zeit:\\s*([0-9.,]+) ms");
     private static final Pattern DEC_PATTERN = Pattern.compile(
-            "Durchschnittliche Entschlüsselungszeit:\\s*([0-9.,]+) ms");
+            "Durchschnittliche Entsch.*?zeit:\\s*([0-9.,]+) ms");
 
     private record Result(int np, double avgMs) {}
 
