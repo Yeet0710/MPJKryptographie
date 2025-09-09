@@ -3,18 +3,18 @@ Prozesse: 1 | Richtung: Alice to Bob (Bobs e/d) | n-Bit: 1023
 == Text 1 | L�nge: 29 Byte | Bl�cke: 1 ==
 ---------- 
 Anzahl der Wiederholungen: 100
-Durchschnittliche Verschl�sselungszeit: 0.091 ms (Standardabweichung: 0.163426990)
-Durchschnittliche Entschl�sselungszeit: 5.697 ms (Standardabweichung: 2.554533751)
+Durchschnittliche Verschl�sselungszeit: 0.107 ms (Standardabweichung: 0.034074340)
+Durchschnittliche Entschl�sselungszeit: 8.051 ms (Standardabweichung: 1.686510095)
 ---------- 
 == Text 2 | L�nge: 378 Byte | Bl�cke: 3 ==
 ---------- 
 Anzahl der Wiederholungen: 100
-Durchschnittliche Verschl�sselungszeit: 0.177 ms (Standardabweichung: 0.052105197)
-Durchschnittliche Entschl�sselungszeit: 14.029 ms (Standardabweichung: 1.971225258)
+Durchschnittliche Verschl�sselungszeit: 0.235 ms (Standardabweichung: 0.042138672)
+Durchschnittliche Entschl�sselungszeit: 19.889 ms (Standardabweichung: 2.001480831)
 ---------- 
 == Text 3 | L�nge: 1985 Byte | Bl�cke: 16 ==
 ---------- 
 Anzahl der Wiederholungen: 100
-Durchschnittliche Verschl�sselungszeit: 0.845 ms (Standardabweichung: 0.285579190)
-Durchschnittliche Entschl�sselungszeit: 70.842 ms (Standardabweichung: 6.918934484)
+Durchschnittliche Verschl�sselungszeit: 1.197 ms (Standardabweichung: 0.091901192)
+Durchschnittliche Entschl�sselungszeit: 103.529 ms (Standardabweichung: 3.519979344)
 ---------- 

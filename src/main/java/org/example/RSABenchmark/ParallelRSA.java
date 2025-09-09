@@ -63,7 +63,7 @@ public final class ParallelRSA {
         String[] values = new String[count];
         int c = 0;
         for (int i = rank; i < total; i += size) {
-            BigInteger enc = ParallelSchnelleExponentiation.pow(allBlocks[i], e, n, MPI.COMM_SELF);
+            BigInteger enc = ParallelSchnelleExponentiation.pow(allBlocks[i], e, n, (Intracomm) MPI.COMM_SELF);
             indices[c] = i;
             values[c] = enc.toString();
             c++;
@@ -139,7 +139,7 @@ public final class ParallelRSA {
         String[] values = new String[count];
         int c = 0;
         for (int i = rank; i < total; i += size) {
-            BigInteger dec = ParallelSchnelleExponentiation.pow(allBlocks[i], d, n, MPI.COMM_SELF);
+            BigInteger dec = ParallelSchnelleExponentiation.pow(allBlocks[i], d, n, (Intracomm) MPI.COMM_SELF);
             indices[c] = i;
             values[c] = dec.toString();
             c++;
