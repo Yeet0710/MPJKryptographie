@@ -52,7 +52,7 @@ public final class ParallelRSA {
         }
         int localCount = counts[rank];
 
-        String[] sendBuf = null;
+        String[] sendBuf = new String[0];
         if (rank == 0 && blocks != null) {
             sendBuf = new String[total];
             for (int i = 0; i < total; i++) {
@@ -61,7 +61,7 @@ public final class ParallelRSA {
         }
         String[] recvBuf = new String[localCount];
         if (total > 0) {
-            comm.Scatterv(sendBuf, counts, displs, MPI.OBJECT, recvBuf, localCount, MPI.OBJECT, 0);
+            comm.Scatterv(sendBuf, 0, counts, displs, MPI.OBJECT, recvBuf, 0, localCount, MPI.OBJECT, 0);
         }
 
         // Process received blocks locally
@@ -74,13 +74,17 @@ public final class ParallelRSA {
         BigInteger[] result = null;
         if (rank == 0 && total > 0) {
             String[] gathered = new String[total];
-            comm.Gatherv(localVals, localCount, MPI.OBJECT, gathered, counts, displs, MPI.OBJECT, 0);
+
+            comm.Gatherv(localVals, 0, localCount, MPI.OBJECT, gathered, 0, counts, displs, MPI.OBJECT, 0);
+
             result = new BigInteger[total];
             for (int i = 0; i < total; i++) {
                 result[i] = new BigInteger(gathered[i]);
             }
         } else if (total > 0) {
-            comm.Gatherv(localVals, localCount, MPI.OBJECT, new String[0], counts, displs, MPI.OBJECT, 0);
+
+            comm.Gatherv(localVals, 0, localCount, MPI.OBJECT, new String[0], 0, counts, displs, MPI.OBJECT, 0);
+
         }
         return result;
     }
@@ -120,7 +124,8 @@ public final class ParallelRSA {
         }
         int localCount = counts[rank];
 
-        String[] sendBuf = null;
+        String[] sendBuf = new String[0];
+
         if (rank == 0 && blocks != null) {
             sendBuf = new String[total];
             for (int i = 0; i < total; i++) {
@@ -129,7 +134,9 @@ public final class ParallelRSA {
         }
         String[] recvBuf = new String[localCount];
         if (total > 0) {
-            comm.Scatterv(sendBuf, counts, displs, MPI.OBJECT, recvBuf, localCount, MPI.OBJECT, 0);
+
+            comm.Scatterv(sendBuf, 0, counts, displs, MPI.OBJECT, recvBuf, 0, localCount, MPI.OBJECT, 0);
+
         }
 
         // Process received blocks locally
@@ -142,13 +149,17 @@ public final class ParallelRSA {
         BigInteger[] result = null;
         if (rank == 0 && total > 0) {
             String[] gathered = new String[total];
-            comm.Gatherv(localVals, localCount, MPI.OBJECT, gathered, counts, displs, MPI.OBJECT, 0);
+
+            comm.Gatherv(localVals, 0, localCount, MPI.OBJECT, gathered, 0, counts, displs, MPI.OBJECT, 0);
+
             result = new BigInteger[total];
             for (int i = 0; i < total; i++) {
                 result[i] = new BigInteger(gathered[i]);
             }
         } else if (total > 0) {
-            comm.Gatherv(localVals, localCount, MPI.OBJECT, new String[0], counts, displs, MPI.OBJECT, 0);
+
+            comm.Gatherv(localVals, 0, localCount, MPI.OBJECT, new String[0], 0, counts, displs, MPI.OBJECT, 0);
+
         }
         return result;
     }
