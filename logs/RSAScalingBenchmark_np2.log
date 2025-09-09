@@ -1,0 +1,20 @@
+MPJ Express (0.44) is started in the multicore configuration
+Prozesse: 2 | Richtung: Alice to Bob (Bobs e/d) | n-Bit: 1023
+== Text 1 | L�nge: 29 Byte | Bl�cke: 1 ==
+---------- 
+Anzahl der Wiederholungen: 100
+Durchschnittliche Verschl�sselungszeit: 0.101 ms (Standardabweichung: 0.084550566)
+Durchschnittliche Entschl�sselungszeit: 7.787 ms (Standardabweichung: 5.901049057)
+---------- 
+== Text 2 | L�nge: 378 Byte | Bl�cke: 3 ==
+---------- 
+Anzahl der Wiederholungen: 100
+Durchschnittliche Verschl�sselungszeit: 0.177 ms (Standardabweichung: 0.082556904)
+Durchschnittliche Entschl�sselungszeit: 14.049 ms (Standardabweichung: 3.461192313)
+---------- 
+== Text 3 | L�nge: 1985 Byte | Bl�cke: 16 ==
+---------- 
+Anzahl der Wiederholungen: 100
+Durchschnittliche Verschl�sselungszeit: 0.880 ms (Standardabweichung: 0.310228411)
+Durchschnittliche Entschl�sselungszeit: 75.450 ms (Standardabweichung: 6.794711200)
+---------- 
