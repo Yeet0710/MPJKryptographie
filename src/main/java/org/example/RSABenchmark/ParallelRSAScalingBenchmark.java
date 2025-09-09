@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
  *
  * <p>The number of repetitions can be provided as the first argument,
  * defaulting to 3 if omitted.</p>
+
  */
 public class ParallelRSAScalingBenchmark {
 
@@ -41,7 +42,6 @@ public class ParallelRSAScalingBenchmark {
         }
 
         int runs = args.length > 0 ? Integer.parseInt(args[0]) : 3;
-
         List<Result> results = new ArrayList<>();
         Path logDir = Paths.get("logs");
         Files.createDirectories(logDir);
@@ -83,6 +83,7 @@ public class ParallelRSAScalingBenchmark {
                 }
             }
             results.add(new Result(np, total / runs));
+
         }
 
         if (results.isEmpty()) return;
